@@ -33,6 +33,39 @@ except ImportError as exc:
                           'this feature, please install it or correct the '
                           'following error:\nImportError %s' % str(exc))
 
+DEFAULT_GALAXY_HOME = "/home/galaxy/galaxy"
+
+MESOS_PARAM_SPECS = dict(
+    password_chronos=dict(
+        map=specs.to_str_or_none,
+        default=None
+    ),
+    user_chronos=dict(
+        map=specs.to_str_or_none,
+        default=None,
+    ),
+    slaves_list=dict(
+        map=specs.to_str_or_none,
+        default=None,
+    ),
+    master_server=dict(
+        map=specs.to_str_or_none,
+        default=None,
+    ),
+    chronos_server=dict(
+        map=specs.to_str_or_none,
+        default=None,
+    ),
+    galaxy_url=dict(
+        map=specs.to_str_or_none,
+        default=None,
+    ),
+    mesos_sandbox=dict(
+        map=specs.to_str_or_none,
+        default="/mnt/mesos/sandbox/",
+    ),
+)
+
 class ChronosAPIError(Exception):
      pass
 
@@ -50,15 +83,19 @@ class ChronosClient(object):
     _user = None
     _password = None
 
-    def __init__(self, servers, username=None, password=None, level='WARN'):
-        #server_list = servers if isinstance(servers, list) else [servers]
-        #self.servers = ["%s://%s" % (proto, server) for server in server_list]
-        self.chronos = "https://172.30.67.7:4443"
-        self.master = "http://172.30.67.7:5050"
-        self.slaves= ["172.30.67.5:5051","172.30.67.4:5051"] #slaves[i] = slave(1) always! 
+   def __init__(self,chronos_server,master_server,slaves_list=[], username=None, password=None, level='WARN'):
+       
+        self.chronos = chronos_server
+        log.debug('CHRONOS SERVER is %s', chronos_server)
+        self.master = master_server
+        log.debug('MASTER SERVER is %s', master_server)
+        
+        self.slaves=slaves_list.split(",")
+        for slave in self.slaves:
+            log.debug('SLAVE LIST ARE %s', slave)
         if username and password:
-            self._user = username
-            self._password = password
+            self._user_chronos = username
+            self._password_chronos = password
         logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s', level=level)
         self.logger = logging.getLogger(__name__)
 
@@ -271,20 +308,26 @@ class PyMesosJobRunner(AsynchronousJobRunner):
     """
     runner_name = "PyMesosRunner"
 
-    def __init__(self, app, nworkers, **kwargs):
+    def __init__(self, app, nworkers, **kwds):
         assert chronos is not None, PYMESOS_IMPORT_MESSAGE
         log.debug("Loading app %s", app)
-        runner_param_specs = dict(chronos_server=dict(map=str),user=dict(map=str), password=dict(map=str))
-            
-        if 'runner_param_specs' not in kwargs:
-            kwargs['runner_param_specs'] = dict()
-        kwargs['runner_param_specs'].update(runner_param_specs)
 
-        """Start the job runner parent object """
-        super(PyMesosJobRunner, self).__init__(app, nworkers, **kwargs)
+        super( PyMesosJobRunner, self ).__init__( app, nworkers, runner_param_specs=MESOS_PARAM_SPECS, **kwds )
         
-        self.chronos_cli = ChronosClient(self.runner_params["chronos_server"], username=self.runner_params["user"],
-                           password=self.runner_params["password"])
+        galaxy_url = self.runner_params.galaxy_url
+        self.mesos_sandbox_dir = self.runner_params.mesos_sandbox
+        log.debug("MESOS SANDBOX %s",self.mesos_sandbox_dir)
+        if not galaxy_url:
+            galaxy_url = app.config.galaxy_infrastructure_url+"/"
+        log.debug("GALAXY URL %s",galaxy_url)
+        self.galaxy_url = galaxy_url
+        self.galaxy_inst = galaxy.GalaxyInstance(self.galaxy_url, key='GALAXY_ADMIN_API_KEY')
+
+        self.chronos_cli = ChronosClient(self.runner_params.chronos_server,
+                                         self.runner_params.master_server,
+                                         self.runner_params.slaves_list,
+                                         username=self.runner_params.user_chronos,
+                                         password=self.runner_params.password_chronos)
         
         
         if not self.chronos_cli:
@@ -292,8 +335,7 @@ class PyMesosJobRunner(AsynchronousJobRunner):
         else:
             
             self._init_monitor_thread()
-            self._init_worker_threads()
-       
+            self._init_worker_threads() 
 
     def queue_job(self, job_wrapper):
         """Create Chronos job and submit it to Mesos cluster"""
