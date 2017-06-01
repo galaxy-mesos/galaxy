@@ -4,6 +4,7 @@
 
 
 import logging
+import socket
 import httplib2
 import json
 
@@ -18,7 +19,8 @@ from galaxy.jobs.runners import AsynchronousJobState, AsynchronousJobRunner
 from os import environ as os_environ
 from six import text_type
 from requests import Request, Session
-
+from galaxy.util import specs
+#from bioblend import galaxy
 from base64 import b64encode
 
 
@@ -79,15 +81,15 @@ class ChronosClient(object):
     _user = None
     _password = None
 
-   def __init__(self,chronos_server,master_server,username=None, password=None, level='WARN'):
+    def __init__(self,chronos_server,master_server,username=None, password=None, level='WARN'):
        
         self.chronos = chronos_server
         log.debug('CHRONOS SERVER is %s', chronos_server)
         self.master = master_server
         log.debug('MASTER SERVER is %s', master_server)
         if username and password:
-            self._user_chronos = username
-            self._password_chronos = password
+            self._user = username
+            self._password = password
         logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s', level=level)
         self.logger = logging.getLogger(__name__)
 
@@ -311,7 +313,7 @@ class PyMesosJobRunner(AsynchronousJobRunner):
             galaxy_url = app.config.galaxy_infrastructure_url+"/"
         log.debug("GALAXY URL %s",galaxy_url)
         self.galaxy_url = galaxy_url
-        self.galaxy_inst = galaxy.GalaxyInstance(self.galaxy_url, key='GALAXY_ADMIN_API_KEY')
+        #self.galaxy_inst = galaxy.GalaxyInstance(self.galaxy_url, key='GALAXY_ADMIN_API_KEY')
 
         self.chronos_cli = ChronosClient(self.runner_params.chronos_server,
                                          self.runner_params.master_server,
@@ -408,7 +410,7 @@ class PyMesosJobRunner(AsynchronousJobRunner):
         """
         # Get the params from <destination> tag in job_conf by using job_destination.params[param]
         if self.chronos_cli:
-          log.debug(" CHRONOS CLI esisteee!\n")
+          log.debug(" CHRONOS CLI OK\n")
         job_destination = job_wrapper.job_destination
         try:
            mesos_task_cpu = int(job_destination.params["mesos_task_cpu"])
@@ -439,33 +441,25 @@ class PyMesosJobRunner(AsynchronousJobRunner):
 
         volumes = []
         try:
-            if (job_destination.params["pymesos_volumes_containerPath"]):
-             volume = job_destination.params["pymesos_volumes_containerPath"]
+            if (job_destination.params["pymesos_volumes"]):
+             volume = job_destination.params["pymesos_volumes"]
              volume = volume.split(",")
              log.debug("VOLUME is s%", volume)
              for i in volume:
-                temp = dict({"containerPath":job_destination.params["pymesos_volumes_containerPath"],              
-                             "hostPath":job_destination.params["pymesos_volumes_hostPath"],"mode":"RW"})
+                temp = dict({"containerPath":job_destination.params["pymesos_volumes"],
+                             "hostPath":job_destination.params["pymesos_volumes"],"mode":"RW"})
                 volumes.append(temp)
         except:
                 log.debug("pymesos_volumes not set. Getting default volume!!")
 
-        try:
-            #if (job_destination.params["pymesos_volumes_containerPath"]):
-             #       src_command = job_wrapper.runner_command_line
-             #       command = src_command.replace(volumes[0]["hostPath"],volumes[0]["containerPath"])
-             #       log.debug("NEW COMMAND IS %s",command)
-            #else:
-                    
-               command = job_wrapper.runner_command_line
-        except:
-               command = job_wrapper.runner_command_line
+        command = job_wrapper.runner_command_line
         
-        
+        base_command=job_wrapper.get_command_line()
+ 
         pymesos_jobname=self._produce_pymesos_job_name(job_wrapper.job_id)
         pymesos_job = {
               "name": pymesos_jobname,
-              "command": command,
+              "command": base_command,
               "schedule":"R1//P10M", 
               "scheduleTimeZone":"LMT",
               "epsilon": "PT60S",
