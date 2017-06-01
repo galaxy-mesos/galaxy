@@ -9,12 +9,13 @@
             <!-- Different DRMs handle successfully completed jobs differently,
                  these options can be changed to handle such differences and
                  are explained in detail on the Galaxy wiki. Defaults are shown -->
-            <param id="chronos_server">127.0.0.1:4443</param>
-            <param id="user">admin</param>
-            <param id="password">s3cret</param>
+            <param id="chronos_server">http://127.0.0.1:4400</param>
+            <param id="user_chronos">admin</param>
+            <param id="password_chronos">s3cret</param>
+            <param id="master_server">http://172.30.67.24:5050</param>
         </plugin>
     </plugins>
-    <handlers default="handlers">
+    <handlers>
         <handler id="main"/>
     </handlers>   
     <destinations default="pymesos_container">
@@ -32,8 +33,7 @@
             <param id="docker_enabled">true</param>
             <param id="pymesos_default_container_id">ubuntu:16.04</param>  <!--
               Specify the image on which the jobs have to be executed -->
-            <param id="pymesos_volumes_containerPath">/home/galaxy/galaxy</param>
-            <param id="pymesos_volumes_hostPath">/home/galaxy/galaxy</param>
+            <param id="pymesos_volumes">/home/ubuntu/galaxy</param>
            
             <param id="virtualenv">false</param>
             <!-- If a tool execution in container requires galaxy virtualenv, 
