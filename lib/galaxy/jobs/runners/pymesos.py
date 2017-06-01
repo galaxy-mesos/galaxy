@@ -44,10 +44,6 @@ MESOS_PARAM_SPECS = dict(
         map=specs.to_str_or_none,
         default=None,
     ),
-    slaves_list=dict(
-        map=specs.to_str_or_none,
-        default=None,
-    ),
     master_server=dict(
         map=specs.to_str_or_none,
         default=None,
@@ -83,16 +79,12 @@ class ChronosClient(object):
     _user = None
     _password = None
 
-   def __init__(self,chronos_server,master_server,slaves_list=[], username=None, password=None, level='WARN'):
+   def __init__(self,chronos_server,master_server,username=None, password=None, level='WARN'):
        
         self.chronos = chronos_server
         log.debug('CHRONOS SERVER is %s', chronos_server)
         self.master = master_server
         log.debug('MASTER SERVER is %s', master_server)
-        
-        self.slaves=slaves_list.split(",")
-        for slave in self.slaves:
-            log.debug('SLAVE LIST ARE %s', slave)
         if username and password:
             self._user_chronos = username
             self._password_chronos = password
@@ -125,10 +117,8 @@ class ChronosClient(object):
        """get the state info of a slave slaveX_hostname is slave(1)@172.30.67.4:5051"""
        pos=slaveX_hostname.find("@")
        slaveX=slaveX_hostname[:pos]
-       if slaveX_hostname.find(self.slaves[0])>=0:
-         slave="http://"+self.slaves[0]
-       else:
-         slave="http://"+self.slaves[1]
+       slave=slaveX_hostname[pos+1:]
+       slave="http://"+ slave
        path = slave+"/"+slaveX+"/state"
        log.debug( "PATH_STATE is %s", path)
        return self._call(path,"GET")
@@ -325,7 +315,6 @@ class PyMesosJobRunner(AsynchronousJobRunner):
 
         self.chronos_cli = ChronosClient(self.runner_params.chronos_server,
                                          self.runner_params.master_server,
-                                         self.runner_params.slaves_list,
                                          username=self.runner_params.user_chronos,
                                          password=self.runner_params.password_chronos)
         
@@ -435,22 +424,19 @@ class PyMesosJobRunner(AsynchronousJobRunner):
            mesos_task_mem = int(job_destination.params["mesos_task_mem"])
         except:
            mesos_task_mem = 128
-        try:
-           workingDirectory=job_wrapper.working_directory
-           job_tool=job_wrapper.tool
-           docker_image = self._find_container(job_wrapper).container_id
-           log.debug("DOCKER IMAGE: %s \n",docker_image)
-           log.debug("Job tool: %s",job_tool)
-           log.debug("work dir: %s",workingDirectory)
-        except:
-           log.debug("Docker_image not specified in Job config and Tool config!!")
-           
-           """try:
-                log.debug(self.runner_params["gomesos_docker_project"])
-                project = str(self.runner_params["gomesos_docker_project"])
-            except KeyError:
-                log.debug("gomesosdocker_project not defined, using defaults")
-           """
+        
+        workingDirectory=job_wrapper.working_directory
+        job_tool=job_wrapper.tool
+        if self._find_container(job_wrapper):
+              log.debug("WRAPPER CONTAINER IMAGE %s",self._find_container(job_wrapper).container_id)
+              docker_image = self._find_container(job_wrapper).container_id
+        else:
+              log.debug("DOCKER IMAGE: %s \n",job_destination.params["pymesos_default_container_id"])
+              docker_image = job_destination.params["pymesos_default_container_id"]
+        log.debug("DOCKER IMAGE: %s \n",docker_image)
+        log.debug("Job tool: %s",job_tool)
+        log.debug("work dir: %s",workingDirectory)
+
         volumes = []
         try:
             if (job_destination.params["pymesos_volumes_containerPath"]):
@@ -488,7 +474,7 @@ class PyMesosJobRunner(AsynchronousJobRunner):
               "async":False,
               "container": {
                 "type": "DOCKER",
-                "image":job_destination.params["pymesos_default_container_id"], # self._find_container(job_wrapper).container_id,
+                "image":docker_image, # self._find_container(job_wrapper).container_id,
                 "volumes": volumes
               },
               "successCount": 0,
@@ -544,11 +530,9 @@ class PyMesosJobRunner(AsynchronousJobRunner):
         log.debug("path_sandbox is %s",path_sandbox)
         if path_sandbox:
             slaveX_hostname=self._obtain_chronos_jobs_nodes(job_id)
-            if slaveX_hostname.find(self.chronos_cli.slaves[0])>=0:
-               slave="http://"+self.chronos_cli.slaves[0]
-            else:
-               slave="http://"+self.chronos_cli.slaves[1]
-
+            pos=slaveX_hostname.find("@")
+            slave=slaveX_hostname[pos+1:]
+            slave="http://"+ slave
             path = slave + "/files/download.json?path=" + path_sandbox
             log.debug("PATH FOR DOWNLOAD is %s", path)
             """ content of the API callas"""
