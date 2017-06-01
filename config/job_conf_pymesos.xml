@@ -9,28 +9,12 @@
             <!-- Different DRMs handle successfully completed jobs differently,
                  these options can be changed to handle such differences and
                  are explained in detail on the Galaxy wiki. Defaults are shown -->
-            <param id="chronos_server">172.30.6.66:4443</param>
+            <param id="chronos_server">127.0.0.1:4443</param>
             <param id="user">admin</param>
-            <param id="password">test_pass</param>
+            <param id="password">s3cret</param>
         </plugin>
     </plugins>
     <handlers default="handlers">
-        <!-- Additional job handlers - the id should match the name of a
-             [server:<id>] in galaxy.ini.-->
-         
-        <handler id="handler0" tags="handlers"/>
-        <handler id="handler1" tags="handlers"/>
-        <handler id="handler2" tags="handlers"/>
-        <handler id="handler3" tags="handlers"/>
-        <handler id="handler4" tags="handlers"/>
-        <handler id="handler5" tags="handlers"/>
-
-        <!-- Handlers will load all plugins defined in the <plugins> collection
-             above by default, but can be limited to a subset using <plugin>
-             tags. This is useful for heterogenous environments where the DRMAA
-             plugin would need to be loaded more than once with different
-             configs.
-         -->
         <handler id="main"/>
     </handlers>   
     <destinations default="pymesos_container">
@@ -42,11 +26,11 @@
             <param id="docker_enabled">true</param>
         </destination>-->
         <destination id="pymesos_container" runner="pymesos">
-            <param id="mesos_task_cpu">0.1</param>
+            <param id="mesos_task_cpu">0.5</param>
             <param id="mesos_task_mem">128</param>
             <param id="mesos_task_disk">256</param>
             <param id="docker_enabled">true</param>
-            <param id="pymesos_default_container_id">libmesos/ubuntu</param>  <!--
+            <param id="pymesos_default_container_id">ubuntu:16.04</param>  <!--
               Specify the image on which the jobs have to be executed -->
             <param id="pymesos_volumes_containerPath">/home/galaxy/galaxy</param>
             <param id="pymesos_volumes_hostPath">/home/galaxy/galaxy</param>
@@ -57,27 +41,8 @@
                  Disable venv by setting the value to false.
              -->            
         </destination>
-        <destination id="smalt_container" runner="pymesos">
-            <param id="mesos_task_cpu">0.1</param>
-            <param id="mesos_task_mem">128</param>
-            <param id="mesos_task_disk">256</param>
-            <param id="docker_enabled">true</param>
-            <param id="pymesos_default_container_id">apetkau/smalt-galaxy</param>  <!--
-              Specify the image on which the jobs have to be executed -->
-            <param id="pymesos_volumes_containerPath">/home/galaxy/galaxy</param>
-            <param id="pymesos_volumes_hostPath">/home/galaxy/galaxy</param>
-
-            <param id="virtualenv">false</param>
-            <!-- If a tool execution in container requires galaxy virtualenv, 
-                 then enable it by setting the value to true.
-                 Disable venv by setting the value to false.
-            -->
-        </destination>
     </destinations>
     <tools>
-      <tool id="GoChHello_id" destination="pymesos_container"/>
-      <tool id="GoChCat_id" destination="pymesos_container"/>
-      <tool id="smalt_wrapper (docker)" destination="smalt_container"/>
       <tool id="upload1" destination="local"/>
     </tools>
     <limits> 
