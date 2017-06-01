@@ -79,15 +79,4 @@
         -->
         <limit type="output_size">10GB</limit>
     </limits>
-    <macros>
-        <xml name="foohost_destination" tokens="id,walltime,ncpus">
-            <destination id="@ID@" runner="cli">
-                <param id="shell_plugin">SecureShell</param>
-                <param id="job_plugin">Torque</param>
-                <param id="shell_username">galaxy</param>
-                <param id="shell_hostname">foohost_destination.example.org</param>
-                <param id="job_Resource_List">walltime=@WALLTIME@,ncpus=@NCPUS@</param>
-            </destination>
-        </xml>
-    </macros>
 </job_conf>
