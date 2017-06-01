@@ -673,8 +673,3 @@ class PyMesosJobRunner(AsynchronousJobRunner):
             ajs.old_state = model.Job.states.QUEUED
             ajs.running = False
             self.monitor_queue.put(ajs)
-        
-
-   
-     
-
