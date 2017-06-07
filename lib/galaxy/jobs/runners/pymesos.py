@@ -469,7 +469,8 @@ class PyMesosJobRunner(AsynchronousJobRunner):
               "container": {
                 "type": "DOCKER",
                 "image":docker_image, # self._find_container(job_wrapper).container_id,
-                "volumes": volumes
+                "volumes": volumes,
+                "forcePullImage":True 
               },
               "successCount": 0,
               "errorCount": 0, 
