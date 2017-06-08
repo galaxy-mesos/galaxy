@@ -445,9 +445,9 @@ class PyMesosJobRunner(AsynchronousJobRunner):
              volume = job_destination.params["pymesos_volumes"]
              volume = volume.split(",")
              log.debug("VOLUME is s%", volume)
-             for i in volume:
-                temp = dict({"containerPath":job_destination.params["pymesos_volumes"],
-                             "hostPath":job_destination.params["pymesos_volumes"],"mode":"RW"})
+             for vol in volume:
+                temp = dict({"containerPath":vol,
+                             "hostPath":vol,"mode":"RW"})
                 volumes.append(temp)
         except:
                 log.debug("pymesos_volumes not set. Getting default volume!!")
