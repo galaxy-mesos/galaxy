@@ -1,0 +1,15 @@
+<tool id="GoChHello_id" name="GoChronosHello" version="0.1.0">
+  <!--<requirements>
+        <container type="docker">ubuntu:14.04</container> 
+     <container type="docker">indigodatacloud/chronos</container>
+  </requirements>-->
+  <description>write hello in a file in a Mesos Cluster</description>
+  <command>echo HELLO PYMESOS > $output</command>
+  <outputs>
+    <data format="txt" name="output" />
+  </outputs>
+  <help>
+   This tool send Hello to Mesos via Galaxy Pulsar.
+  </help>
+</tool>
+
