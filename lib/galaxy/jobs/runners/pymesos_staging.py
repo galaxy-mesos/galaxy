@@ -13,6 +13,7 @@ import json
 
 import time
 import os
+import random
 import inspect
 import requests
 from datetime import datetime
@@ -37,7 +38,7 @@ except ImportError as exc:
                           'this feature, please install it or correct the '
                           'following error:\nImportError %s' % str(exc))
 
-DEFAULT_GALAXY_HOME = "/home/galaxy/test_galaxy"
+DEFAULT_GALAXY_HOME = "/home/galaxy/test_galaxy_2"
 
 MESOS_PARAM_SPECS = dict(
     password_chronos=dict(
@@ -69,6 +70,8 @@ MESOS_PARAM_SPECS = dict(
         default=None, # "/mnt/mesos/sandbox/",
     ),
 )
+
+pid0=str(os.getpid()+random.randint(0,999999999))
 
 class ChronosAPIError(Exception):
      pass
@@ -259,6 +262,7 @@ class PyMesosJobRunner(AsynchronousJobRunner):
         
         galaxy_url = self.runner_params.galaxy_url
         self.mesos_sandbox_dir = self.runner_params.mesos_sandbox
+
         if not galaxy_url:
             galaxy_url = app.config.galaxy_infrastructure_url+"/"
         self.galaxy_url = galaxy_url
@@ -376,13 +380,13 @@ class PyMesosJobRunner(AsynchronousJobRunner):
 
     def _produce_pymesos_job_name(self, job_id):
         # wrapper.get_id_tag() instead of job_id for compatibility with TaskWrappers.
-        return "ChronosTask_" + str(job_id)
-
+	return "ChronosTask_" + pid0 + "_" + str(job_id)
+	
     def _obtain_chronos_job_sandbox_path(self, job_id):
         '''Method to obtain the slaves' hostnames that are executing chronos jobs'''
         slaveX_hostname=self._obtain_chronos_jobs_nodes(job_id)
         chronos_task_name = "ChronosTask:" + self._produce_pymesos_job_name(job_id)
-        #log.debug("chronos_task_name is %s", chronos_task_name)
+        log.debug("chronos_task_name is %s", chronos_task_name)
         chronos_job_sandbox_path="No Path"
         state_info=self.chronos_cli._obtain_chronos_slaveX_state(slaveX_hostname)
         if state_info:
@@ -391,7 +395,7 @@ class PyMesosJobRunner(AsynchronousJobRunner):
               for executor in framework['completed_executors']:
                      for task_item in executor['completed_tasks']:
                        if (chronos_task_name == task_item['name']):
-                           #log.debug("SANDBOX PATH %s:", executor['directory'])
+                           log.debug("SANDBOX PATH %s:", executor['directory'])
                            chronos_job_sandbox_path = executor['directory'] 
         return chronos_job_sandbox_path
 
@@ -661,7 +665,7 @@ class PyMesosJobRunner(AsynchronousJobRunner):
                 self.mark_as_failed(job_state)
                 return None
         elif len(response) == 0:
-            log.error("There is no job responding to this job_id: " + job_state.job_id,". It is either lost or something happened.")
+            log.error("There is no job responding to this job_id: " + job_state.job_id + ". It is either lost or something happened.")
             self.create_log_file(job_state,model.Job.states.ERROR)
             self.mark_as_failed(job_state)
             return job_state
